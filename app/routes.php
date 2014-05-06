@@ -11,7 +11,101 @@
 |
 */
 
-Route::get('/', function()
+Route::group(array('prefix' => 'api'), function()
 {
-	return View::make('hello');
+
+	/**
+	 * List of the theatres.
+	 * @return [{"id": "1", "name": "Theater"}, ...]
+	 */
+	Route::get('cinema/list', function()
+	{	
+		$cinemas = Cinema::all();
+		return Response::json($cinemas);
+	});
+
+	/**
+	 * Upcoming sessions of the given theatre.
+	 * @return [{
+	 *           "id": "1", //session_id
+	 *           "begins_at": "2014-05-05 23:00:00", //datetime
+	 *           "movie": {"id": "1", "name": "Penguins"},
+	 *           "hall": {"id": "1", "name": "#1"}
+	 *           },
+	 *          ...]
+	 */
+	Route::get('cinema/{cinema}/schedule', function($cinema)
+	{	
+		$scope = Schedule::where('cinema_id', '=', $cinema);
+		if (Input::has('hall'))
+		{
+			$scope = $scope->where('hall_id', '=', Input::get('hall'));
+		}
+		$sessions = $scope->with('movie', 'hall')
+						->upcoming()
+						->get();
+		return Response::json($sessions);
+	});
+
+	/**
+	 * List of the upcoming movies. NOT JUST ALL MOVIES FROM DB, ONLY FROM TODAY AND FURTHER.
+	 * @return [{"id": "1", "name": "Penguins"}, ...]
+	 */
+	Route::get('film/list', function()
+	{	
+		$movies = Movie::upcoming()->get();
+		return Response::json($movies);
+	});
+
+	/**
+	 * Upcoming sessions of the given movie.
+	 * @return [{
+	 *           "id": "1", //session_id
+	 *           "begins_at": "2014-05-05 23:00:00", //datetime
+	 *           "cinema": {"id": "1", "name": "Theater"},
+	 *           "hall": {"id": "1", "name": "#1"}
+	 *           },
+	 *          ...]
+	 */
+	Route::get('film/{movie}/schedule', function($movie)
+	{
+		$sessions = Schedule::where('movie_id', '=', $movie)
+						->with('hall', 'cinema')
+						->upcoming()
+						->get();
+		return Response::json($sessions);
+	});
+
+	/**
+	 * List of the available places for the given session.
+	 * @return ["1", ...]
+	 */
+	Route::get('session/{session}/places', function($session)
+	{
+		$places = Schedule::where('schedules.id', '=', $session)
+						->places() // <- logic in model (/app/models/Schedule.php)
+						->lists('num');
+		return Response::json($places);
+	});
+
+	/**
+	 * Buy action.
+	 */
+	Route::post('tickets/buy', function()
+	{
+	//?session=<id сеанса>&places=1,3,5,7
+	
+	
+		echo '<pre>';
+		print_r(DB::getQueryLog());
+	});
+
+	/**
+	 * Reject action.
+	 */
+	Route::post('tickets/reject/{ticket}', function($ticket)
+	{
+
+	});
+
 });
