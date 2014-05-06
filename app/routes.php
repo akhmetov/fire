@@ -121,11 +121,21 @@ Route::group(array('prefix' => 'api'), function()
 	 */
 	Route::post('tickets/reject/{ticket}', function($ticket)
 	{
-		if(Ticket::whereId(Crypt::decrypt($ticket))->delete())
-		{
-			return Response::json(array('delete' => 'ok'));
-		} else {
-			App::abort(404);
+		$ticket = Ticket::find(Crypt::decrypt($ticket));
+		if($ticket) {
+			$deadline = Schedule::find($ticket->schedule_id)
+						->begins_at
+						->subHour();
+			if(time() < $deadline->timestamp) {
+				if($ticket->delete())
+				{
+					return Response::json(array('delete' => 'ok'));
+				} else {
+					App::abort(404);
+				}
+			} else {
+				return Response::json(array('error' => 'Deadline for rejecting was at '.$deadline), 404);
+			}
 		}
 	});
 

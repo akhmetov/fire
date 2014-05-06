@@ -26,6 +26,11 @@ class Schedule extends Eloquent {
 		return $this->hasMany('Ticket');
 	}
 	
+	public function getDates()
+	{
+		return array('begins_at');
+	}
+	
 	/*
 	 * SELECT
 	 *   `places`.`num`
