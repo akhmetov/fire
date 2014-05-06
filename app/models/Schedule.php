@@ -60,7 +60,7 @@ class Schedule extends Eloquent {
 							  ->whereRaw('tickets.place_id = places.id')
 							  ->whereRaw('tickets.schedule_id = schedules.id');
 					})
-				->select('places.num');
+				->select('places.id', 'places.hall_id', 'places.num');
 	}
 	
 	public function scopeUpcoming($query) {

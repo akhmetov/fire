@@ -90,22 +90,48 @@ Route::group(array('prefix' => 'api'), function()
 
 	/**
 	 * Buy action.
+	 * @return ["1", ...]
 	 */
 	Route::post('tickets/buy', function()
 	{
-	//?session=<id сеанса>&places=1,3,5,7
-	
-	
-		echo '<pre>';
-		print_r(DB::getQueryLog());
+		$places = explode(',', Input::get('places'));
+		$empty = Schedule::where('schedules.id', '=', Input::get('session'))
+						->places()
+						->whereIn('num', $places)
+						->get();
+		if(sizeof($places) == sizeof($empty)) {		
+			$codes = array();
+			foreach ($empty as $place)
+			{
+				$ticket = new Ticket;
+				$ticket->schedule_id = Input::get('session');
+				$ticket->place_id = $place->id;
+				$ticket->save();
+				$codes[] = Crypt::encrypt($ticket->id);
+			}
+			return Response::json($codes);
+		} else {
+			return Response::json(array('error' => 'Some of the places already sold'), 404);		
+		}
 	});
 
 	/**
 	 * Reject action.
+	 * @return {"delete": "ok"}
 	 */
 	Route::post('tickets/reject/{ticket}', function($ticket)
 	{
-
+		if(Ticket::whereId(Crypt::decrypt($ticket))->delete())
+		{
+			return Response::json(array('delete' => 'ok'));
+		} else {
+			App::abort(404);
+		}
 	});
 
+});
+
+App::missing(function($exception)
+{
+    return Response::json(array('error' => 'not found'), 404);
 });
